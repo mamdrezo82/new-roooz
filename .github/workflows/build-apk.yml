@@ -1,0 +1,54 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Prepare Web Assets (Create www folder)
+        run: |
+          mkdir -p www
+          cp -r * www/ || true
+          rm -rf www/www
+          rm -rf www/.git
+          rm -rf www/.github
+
+      - name: Add Android Platform
+        run: npx cap add android
+
+      - name: Sync Web Assets
+        run: npx cap sync
+
+      - name: Build Android APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RoozYar-APK
+          path: android/app/build/outputs/apk/debug/*.apk
